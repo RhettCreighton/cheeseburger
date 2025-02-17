@@ -37,6 +37,9 @@ func SetupMVCRoutes(db *badger.DB) *mux.Router {
 	postController := controllers.NewPostControllerWithDB(db)
 	commentController := controllers.NewCommentControllerWithDB(db)
 
+	// Default route for MVC blog homepage
+	router.HandleFunc("/", postController.Index).Methods("GET")
+
 	// Routes for posts
 	router.HandleFunc("/posts", postController.Index).Methods("GET")
 	router.HandleFunc("/posts/{id}", postController.Show).Methods("GET")

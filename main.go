@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	routes "cheeseburger/routes"
 	"cheeseburger/vanity"
 	"crypto/ed25519"
 	_ "embed"
@@ -100,7 +101,7 @@ func serveMvc() {
 		defer db.Close()
 
 		// Setup MVC routes using the Badger DB instance.
-		router := routesSetupMVCRoutes(db)
+		router := routes.SetupMVCRoutes(db)
 		if router == nil {
 			log.Fatal("Failed to setup MVC routes")
 		}
@@ -333,14 +334,4 @@ func startStaticHTTPServer(addr, staticDir string) error {
 	handler := http.FileServer(http.Dir(staticDir))
 	http.Handle("/", handler)
 	return http.ListenAndServe(addr, nil)
-}
-
-func routesSetupMVCRoutes(db *badger.DB) http.Handler {
-	// Placeholder for actual MVC router setup.
-	// Replace this with the actual implementation from your routes package.
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("MVC blog service"))
-	})
-	return mux
 }
