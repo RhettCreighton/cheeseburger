@@ -1,0 +1,14 @@
+<![CDATA[
+{{ define "commentList" }}
+  <ul>
+    {{ range . }}
+      <li>
+        <strong>{{ .Author }}</strong> said: {{ .Content }}<br>
+        <em>{{ .CreatedAt }}</em>
+      </li>
+    {{ else }}
+      <li>No comments yet.</li>
+    {{ end }}
+  </ul>
+{{ end }}
+]]>

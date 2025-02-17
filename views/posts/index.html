@@ -1,0 +1,12 @@
+<![CDATA[
+{{ define "content" }}
+  <h2>Blog Posts</h2>
+  <ul>
+    {{ range .Posts }}
+      <li><a href="/posts/{{ .ID }}">{{ .Title }}</a></li>
+    {{ else }}
+      <li>No posts available.</li>
+    {{ end }}
+  </ul>
+{{ end }}
+]]>

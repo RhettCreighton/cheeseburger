@@ -1,0 +1,10 @@
+<![CDATA[
+{{ define "content" }}
+  <h2>{{ .Post.Title }}</h2>
+  <p>{{ .Post.Content }}</p>
+  <section>
+    <h3>Comments</h3>
+    {{ template "commentList" .Post.Comments }}
+  </section>
+{{ end }}
+]]>
