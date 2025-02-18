@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"cheeseburger/models"
+	"cheeseburger/app/models"
 	"fmt"
 
 	"github.com/dgraph-io/badger/v4"

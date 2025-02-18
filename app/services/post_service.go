@@ -1,8 +1,8 @@
 package services
 
 import (
-	"cheeseburger/models"
-	"cheeseburger/repositories"
+	"cheeseburger/app/models"
+	"cheeseburger/app/repositories"
 	"fmt"
 	"time"
 )

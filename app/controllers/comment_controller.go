@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"cheeseburger/models"
-	"cheeseburger/repositories"
-	"cheeseburger/services"
+	"cheeseburger/app/models"
+	"cheeseburger/app/repositories"
+	"cheeseburger/app/services"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -41,11 +41,11 @@ func NewCommentControllerWithDB(db *badger.DB) *CommentController {
 // loadCommentTemplates loads and parses all comment-related templates
 func loadCommentTemplates() map[string]*template.Template {
 	templates := make(map[string]*template.Template)
-	templates["new"] = template.Must(template.ParseFiles("views/layout.html", "views/comments/new.html"))
+	templates["new"] = template.Must(template.ParseFiles("app/views/layout.html", "app/views/comments/new.html"))
 	templates["list"] = template.Must(template.ParseFiles(
-		"views/layout.html",
-		"views/comments/list.html",
-		"views/shared/comments.html",
+		"app/views/layout.html",
+		"app/views/comments/list.html",
+		"app/views/shared/comments.html",
 	))
 	return templates
 }

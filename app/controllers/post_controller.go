@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	"cheeseburger/models"
-	"cheeseburger/repositories"
-	"cheeseburger/services"
+	"cheeseburger/app/models"
+	"cheeseburger/app/repositories"
+	"cheeseburger/app/services"
 	"encoding/json"
 	"html/template"
 	"net/http"
@@ -41,13 +41,13 @@ func NewPostControllerWithDB(db *badger.DB) *PostController {
 // loadTemplates loads and parses all templates
 func loadTemplates() map[string]*template.Template {
 	templates := make(map[string]*template.Template)
-	templates["index"] = template.Must(template.ParseFiles("views/layout.html", "views/posts/index.html"))
+	templates["index"] = template.Must(template.ParseFiles("app/views/layout.html", "app/views/posts/index.html"))
 	templates["show"] = template.Must(template.ParseFiles(
-		"views/layout.html",
-		"views/posts/show.html",
-		"views/shared/comments.html",
+		"app/views/layout.html",
+		"app/views/posts/show.html",
+		"app/views/shared/comments.html",
 	))
-	templates["new"] = template.Must(template.ParseFiles("views/layout.html", "views/posts/new.html"))
+	templates["new"] = template.Must(template.ParseFiles("app/views/layout.html", "app/views/posts/new.html"))
 	return templates
 }
 
@@ -103,10 +103,10 @@ func (pc *PostController) Show(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		*models.Post
-		PostID int
+		Comments []*models.Comment
 	}{
-		Post:   post,
-		PostID: post.ID,
+		Post:     post,
+		Comments: post.Comments,
 	}
 
 	if err := pc.templates["show"].ExecuteTemplate(w, "layout", data); err != nil {

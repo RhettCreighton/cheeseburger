@@ -3,8 +3,8 @@ package routes
 import (
 	"net/http"
 
-	"cheeseburger/controllers"
-	"cheeseburger/middleware"
+	"cheeseburger/app/controllers"
+	"cheeseburger/app/middleware"
 
 	"github.com/dgraph-io/badger/v4"
 	"github.com/gorilla/mux"

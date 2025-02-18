@@ -1,19 +1,14 @@
-package mvc
+package service
 
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
-	"cheeseburger/routes"
-
 	"github.com/dgraph-io/badger/v4"
 )
-
-const dbPath = "data/badger"
 
 // HandleCommand handles MVC subcommands
 func HandleCommand(args []string) {
@@ -25,7 +20,7 @@ func HandleCommand(args []string) {
 	cmd := args[0]
 	switch cmd {
 	case "serve":
-		serve(args[1:])
+		RunAppServer(args[1:])
 	case "clean":
 		clean()
 	case "init":
@@ -60,28 +55,6 @@ Commands:
   help                           Display this help message
 `
 	fmt.Println(helpText)
-}
-
-// serve starts the MVC blog service
-func serve(args []string) {
-	// Open or initialize the Badger DB
-	opts := badger.DefaultOptions(dbPath)
-	db, err := badger.Open(opts)
-	if err != nil {
-		log.Fatalf("Failed to open Badger DB: %v", err)
-	}
-	defer db.Close()
-
-	// Setup MVC routes using the Badger DB instance
-	router := routes.SetupMVCRoutes(db)
-	if router == nil {
-		log.Fatal("Failed to setup MVC routes")
-	}
-
-	log.Println("Starting MVC blog service on port 8080")
-	if err := http.ListenAndServe(":8080", router); err != nil {
-		log.Fatalf("MVC server error: %v", err)
-	}
 }
 
 // clean removes the database
