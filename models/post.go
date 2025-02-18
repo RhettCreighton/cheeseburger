@@ -8,5 +8,5 @@ type Post struct {
 	Title     string
 	Content   string
 	CreatedAt time.Time
-	Comments  []Comment
+	Comments  []*Comment
 }

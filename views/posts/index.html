@@ -1,12 +1,54 @@
 {{ define "content" }}
-<h1>Blog Posts</h1>
-<p>DEBUG: Rendering posts...</p>
-<p><a href="/posts/new">Create New Post</a></p>
-<ul>
+<div class="header">
+  <h1>Blog Posts</h1>
+  <a href="/posts/new" class="button">Create New Post</a>
+</div>
+
+<div class="posts">
   {{ range .Posts }}
-    <li>{{ . }}</li>
+    <article class="card">
+      <h2><a href="/posts/{{ .ID }}">{{ .Title }}</a></h2>
+      <div class="post-meta text-sm text-gray mb-4">
+        Posted on {{ .CreatedAt.Format "January 2, 2006 at 3:04 PM" }}
+      </div>
+      <p class="post-excerpt mb-4">
+        {{ if gt (len .Content) 200 }}
+          {{ slice .Content 0 200 }}...
+        {{ else }}
+          {{ .Content }}
+        {{ end }}
+      </p>
+      <div class="post-footer">
+        <a href="/posts/{{ .ID }}" class="button">Read More</a>
+        <span class="text-sm text-gray">{{ len .Comments }} Comments</span>
+      </div>
+    </article>
   {{ else }}
-    <li>No posts available.</li>
+    <div class="card">
+      <p class="text-gray">No posts available. Why not create one?</p>
+    </div>
   {{ end }}
-</ul>
+</div>
+
+<style>
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.posts {
+  display: grid;
+  gap: 1.5rem;
+}
+.post-meta {
+  margin-bottom: 1rem;
+}
+.post-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+</style>
 {{ end }}

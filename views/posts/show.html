@@ -1,10 +1,37 @@
 <![CDATA[
 {{ define "content" }}
-  <h2>{{ .Post.Title }}</h2>
-  <p>{{ .Post.Content }}</p>
-  <section>
-    <h3>Comments</h3>
-    {{ template "commentList" .Post.Comments }}
-  </section>
+<article class="card">
+  <header class="post-header">
+    <h1>{{ .Title }}</h1>
+    <div class="post-meta text-sm text-gray">
+      Posted on {{ .CreatedAt.Format "January 2, 2006 at 3:04 PM" }}
+    </div>
+  </header>
+  
+  <div class="post-content mb-4">
+    {{ .Content }}
+  </div>
+
+  <footer class="post-footer">
+    <a href="/" class="button">Back to Posts</a>
+  </footer>
+</article>
+
+{{ template "commentList" .Comments }}
+
+<style>
+.post-header {
+  margin-bottom: 2rem;
+}
+.post-content {
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+.post-footer {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+</style>
 {{ end }}
 ]]>

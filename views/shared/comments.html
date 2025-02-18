@@ -1,0 +1,21 @@
+{{ define "commentList" }}
+<div class="comments">
+  <h3>Comments</h3>
+  {{ if . }}
+    {{ range . }}
+      <div class="comment">
+        <div class="comment-header">
+          <strong>{{ .Author }}</strong>
+          <span class="date">{{ .CreatedAt.Format "Jan 02, 2006 at 3:04 PM" }}</span>
+        </div>
+        <div class="comment-content">
+          {{ .Content }}
+        </div>
+      </div>
+    {{ end }}
+  {{ else }}
+    <p class="no-comments">No comments yet. Be the first to comment!</p>
+  {{ end }}
+  <a href="/posts/{{ $.PostID }}/comments/new" class="button">Add Comment</a>
+</div>
+{{ end }}

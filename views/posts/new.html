@@ -1,15 +1,78 @@
 {{ define "content" }}
-<h1>Create New Post</h1>
-<form action="/posts" method="POST">
-  <div>
-    <label for="title">Title:</label>
-    <input type="text" id="title" name="title" required>
+<div class="header">
+  <h1>Create New Post</h1>
+  <a href="/" class="button" style="background: #64748b;">Cancel</a>
+</div>
+
+<form action="/posts" method="POST" class="post-form">
+  <div class="form-group">
+    <label for="title">Title</label>
+    <input 
+      type="text" 
+      id="title" 
+      name="title" 
+      required
+      placeholder="Enter your post title"
+      minlength="3"
+      maxlength="200"
+      class="mb-4"
+    >
   </div>
-  <div>
-    <label for="content">Content:</label>
-    <textarea id="content" name="content" required></textarea>
+
+  <div class="form-group">
+    <label for="content">Content</label>
+    <textarea 
+      id="content" 
+      name="content" 
+      required
+      placeholder="Write your post content here..."
+      minlength="10"
+      class="mb-4"
+    ></textarea>
   </div>
-  <button type="submit">Create Post</button>
+
+  <div class="form-actions">
+    <button type="submit" class="button">Create Post</button>
+  </div>
 </form>
-<p><a href="/">Back to Posts</a></p>
+
+<style>
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+.post-form {
+  max-width: 100%;
+}
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+}
+input:focus, textarea:focus {
+  outline: 2px solid #2563eb;
+  outline-offset: -1px;
+}
+</style>
+
+<script>
+document.querySelector('form').addEventListener('submit', function(e) {
+  const title = document.getElementById('title').value.trim();
+  const content = document.getElementById('content').value.trim();
+  
+  if (title.length < 3) {
+    e.preventDefault();
+    alert('Title must be at least 3 characters long');
+    return;
+  }
+  
+  if (content.length < 10) {
+    e.preventDefault();
+    alert('Content must be at least 10 characters long');
+    return;
+  }
+});
+</script>
 {{ end }}

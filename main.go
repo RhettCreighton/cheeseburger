@@ -2,7 +2,7 @@ package main
 
 import (
 	"bytes"
-	routes "cheeseburger/routes"
+	"cheeseburger/mvc"
 	"cheeseburger/vanity"
 	"crypto/ed25519"
 	_ "embed"
@@ -16,8 +16,6 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-
-	"github.com/dgraph-io/badger/v4"
 )
 
 const cliVersion = "1.0.0"
@@ -52,7 +50,19 @@ func main() {
 	case "serve":
 		serve()
 	case "mvc":
-		serveMvc()
+		// Check for --vanity-name flag
+		args := os.Args[2:]
+		for i := 0; i < len(args); i++ {
+			if args[i] == "--vanity-name" && i+1 < len(args) {
+				// Remove the flag and value from args
+				args = append(args[:i], args[i+2:]...)
+				break
+			}
+		}
+		// Always run MVC service with Tor
+		runTorHiddenService(func() {
+			mvc.HandleCommand(args)
+		})
 	default:
 		fmt.Printf("Unknown command: %s\n\n", os.Args[1])
 		printHelp()
@@ -62,13 +72,19 @@ func main() {
 
 func printHelp() {
 	helpText := `Usage: cheeseburger <command> [options]
+
 Commands:
-  help                           Display this help message.
-  version                        Show version information.
-  vanity    [options]            Generate a vanity onion address (e.g., vanity --prefix test [--save]).
-  serve <static_directory> [--vanity-name <name>]  
-                                 Run the Tor hidden service for a static file server.
-  mvc [--vanity-name <name>]     Run the Tor hidden service for the MVC blog application.
+  help                           Display this help message
+  version                        Show version information
+  vanity [options]              Generate a vanity onion address (e.g., vanity --prefix test [--save])
+  serve <static_directory>      Run static file server with Tor hidden service
+  mvc                           MVC blog commands:
+    serve [--vanity-name <name>]  Run the blog service (always runs as Tor hidden service)
+    clean                         Clean the database
+    init                          Initialize database
+    backup                        Backup database
+    restore [file]               Restore from backup
+    help                         Show MVC help
 `
 	fmt.Println(helpText)
 }
@@ -89,30 +105,6 @@ func serve() {
 	})
 }
 
-// serveMvc sets up Tor integration and runs the MVC blog service.
-func serveMvc() {
-	runTorHiddenService(func() {
-		// Open or initialize the Badger DB at data/badger
-		opts := badger.DefaultOptions("data/badger")
-		db, err := badger.Open(opts)
-		if err != nil {
-			log.Fatalf("Failed to open Badger DB: %v", err)
-		}
-		defer db.Close()
-
-		// Setup MVC routes using the Badger DB instance.
-		router := routes.SetupMVCRoutes(db)
-		if router == nil {
-			log.Fatal("Failed to setup MVC routes")
-		}
-
-		log.Println("Starting MVC blog service on port 8080 via Tor")
-		if err := http.ListenAndServe(":8080", router); err != nil {
-			log.Fatalf("MVC server error: %v", err)
-		}
-	})
-}
-
 // runTorHiddenService performs the common Tor integration steps for both static and MVC services.
 // It accepts a function (serveFunc) that starts the desired HTTP server.
 func runTorHiddenService(serveFunc func()) {
@@ -124,7 +116,6 @@ func runTorHiddenService(serveFunc func()) {
 			break
 		}
 	}
-	_ = vanityName
 
 	persistentKeyPath := ""
 	if vanityName != "" {
