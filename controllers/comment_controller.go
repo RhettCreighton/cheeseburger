@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"html/template"
 	"net/http"
 
 	"github.com/dgraph-io/badger/v4"
@@ -9,6 +10,16 @@ import (
 // CommentController handles HTTP requests for comments.
 type CommentController struct {
 	DB *badger.DB
+}
+
+// New displays the form for creating a new comment.
+func (cc *CommentController) New(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("views/layout.html", "views/comments/new.html")
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
+	tmpl.ExecuteTemplate(w, "layout", nil)
 }
 
 // NewCommentController creates and returns a new CommentController without a DB.

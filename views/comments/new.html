@@ -1,0 +1,16 @@
+{{ define "content" }}
+<h1>Create New Comment</h1>
+<form action="/posts/{{.PostID}}/comments" method="POST">
+  <div>
+    <label for="author">Author:</label>
+    <input type="text" id="author" name="author" required>
+  </div>
+  <div>
+    <label for="content">Comment:</label>
+    <textarea id="content" name="content" required></textarea>
+  </div>
+  <input type="hidden" name="postId" value="{{.PostID}}">
+  <button type="submit">Submit Comment</button>
+</form>
+<p><a href="/posts/{{.PostID}}">Back to Post</a></p>
+{{ end }}

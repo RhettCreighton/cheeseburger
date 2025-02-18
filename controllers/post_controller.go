@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"html/template"
 	"net/http"
 
 	"github.com/dgraph-io/badger/v4"
@@ -9,6 +10,16 @@ import (
 // PostController handles HTTP requests for blog posts.
 type PostController struct {
 	DB *badger.DB
+}
+
+// New displays the form for creating a new post.
+func (p *PostController) New(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("views/layout.html", "views/posts/new.html")
+	if err != nil {
+		http.Error(w, "Template error", http.StatusInternalServerError)
+		return
+	}
+	tmpl.ExecuteTemplate(w, "layout", nil)
 }
 
 // NewPostController creates and returns a new PostController without a DB.
@@ -23,8 +34,21 @@ func NewPostControllerWithDB(db *badger.DB) *PostController {
 
 // Index handles listing all posts.
 func (pc *PostController) Index(w http.ResponseWriter, r *http.Request) {
-	// TODO: Implement post listing logic.
-	w.Write([]byte("Listing posts"))
+	tmpl, err := template.ParseFiles("views/layout.html", "views/posts/index.html")
+	if err != nil {
+		http.Error(w, "Template parse error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	data := struct {
+		Posts []interface{}
+	}{
+		Posts: []interface{}{"Test Post"},
+	}
+	err = tmpl.ExecuteTemplate(w, "layout", data)
+	if err != nil {
+		http.Error(w, "Template execution error: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 // Show handles displaying a single post.

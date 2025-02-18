@@ -1,21 +1,20 @@
-<![CDATA[
+{{ define "layout" }}
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>{{ .Title }}</title>
-  <link rel="stylesheet" href="/public/css/style.css">
+    <meta charset="utf-8">
+    <title>MVC Blog</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        nav { margin-bottom: 20px; }
+    </style>
 </head>
 <body>
-  <header>
-    <h1>My Blog</h1>
-  </header>
-  <main>
+    <nav>
+        <a href="/">Home</a> |
+        <a href="/posts/new">New Post</a>
+    </nav>
     {{ template "content" . }}
-  </main>
-  <footer>
-    <p>&copy; 2025 My Blog</p>
-  </footer>
 </body>
 </html>
-]]>
+{{ end }}
