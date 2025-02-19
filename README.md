@@ -67,6 +67,76 @@ Cheeseburger includes several commands for managing the application database:
    ```
    Removes the existing database. Use with caution as this operation cannot be undone.
 
+## Model Validations and Testing
+
+### Model Validations
+
+The application implements strict validation rules for data integrity:
+
+#### Post Model Validations
+- ID: Required, must be non-negative
+- Title: Required, length between 3-100 characters
+- Content: Required, minimum length of 10 characters
+- CreatedAt: Required, automatically set if not provided
+
+#### Comment Model Validations
+- ID: Required, must be non-negative
+- PostID: Required, must reference a valid post
+- Author: Required, length between 2-50 characters
+- Content: Required, length between 1-500 characters
+- CreatedAt: Required, automatically set if not provided
+
+### Model Relationships
+- Posts have a one-to-many relationship with Comments
+- Comments belong to a Post (foreign key: PostID)
+- Bidirectional relationship with proper cascading operations
+
+### Running Tests
+
+The project includes comprehensive test coverage across all layers:
+
+#### Model Tests
+```bash
+cd app/models
+go test -v
+```
+Tests model validations, relationships, hooks, and edge cases.
+
+#### Repository Tests
+```bash
+cd app/repositories
+go test -v ./...
+```
+Tests data persistence, CRUD operations, and cascading deletes.
+
+#### Service Tests
+```bash
+cd app/services
+go test -v
+```
+Tests business logic, validations, and service-level operations.
+
+#### Controller Tests
+```bash
+cd app/controllers
+go test -v
+```
+Tests HTTP endpoints, request handling, and response formatting.
+
+The test suite includes:
+- Model validations and relationships
+- Repository CRUD operations and data integrity
+- Service-layer business logic
+- Controller HTTP endpoints
+- Edge cases and error conditions
+- Mock implementations for testing
+- Integration tests between layers
+
+To run all tests:
+```bash
+go test ./... -v
+```
+
 ## MVC Application Commands
 
 Run the dynamic blog application as a Tor hidden service:

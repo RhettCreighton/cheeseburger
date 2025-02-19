@@ -1,20 +1,12 @@
 package repositories
 
 import (
-	"cheeseburger/app/models"
 	"fmt"
+
+	"cheeseburger/app/models"
 
 	"github.com/dgraph-io/badger/v4"
 )
-
-// CommentRepository defines the interface for comment data access
-type CommentRepository interface {
-	Create(comment *models.Comment) error
-	GetByID(id int) (*models.Comment, error)
-	ListByPost(postID int) ([]*models.Comment, error)
-	Update(comment *models.Comment) error
-	Delete(id int) error
-}
 
 // BadgerCommentRepository implements CommentRepository using BadgerDB
 type BadgerCommentRepository struct {
@@ -85,7 +77,7 @@ func (r *BadgerCommentRepository) GetByID(id int) (*models.Comment, error) {
 		return nil, err
 	}
 	if !found {
-		return nil, fmt.Errorf("comment not found: %d", id)
+		return nil, ErrNotFound
 	}
 	return &comment, nil
 }
@@ -144,7 +136,7 @@ func (r *BadgerCommentRepository) Update(comment *models.Comment) error {
 		}
 
 		if key == nil {
-			return fmt.Errorf("comment not found: %d", comment.ID)
+			return ErrNotFound
 		}
 
 		// Marshal and save updated comment
@@ -182,7 +174,7 @@ func (r *BadgerCommentRepository) Delete(id int) error {
 		}
 
 		if key == nil {
-			return fmt.Errorf("comment not found: %d", id)
+			return ErrNotFound
 		}
 
 		return txn.Delete(key)

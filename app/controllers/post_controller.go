@@ -60,6 +60,7 @@ func (pc *PostController) New(w http.ResponseWriter, r *http.Request) {
 
 // Index handles listing all posts
 func (pc *PostController) Index(w http.ResponseWriter, r *http.Request) {
+	// Parse page parameter
 	page := 1
 	if pageStr := r.URL.Query().Get("page"); pageStr != "" {
 		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
@@ -67,22 +68,40 @@ func (pc *PostController) Index(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	posts, err := pc.postService.ListPosts(page, 10)
+	// Parse per_page parameter
+	perPage := 10
+	if perPageStr := r.URL.Query().Get("per_page"); perPageStr != "" {
+		if pp, err := strconv.Atoi(perPageStr); err == nil && pp > 0 {
+			perPage = pp
+		}
+	}
+
+	posts, err := pc.postService.ListPosts(page, perPage)
 	if err != nil {
 		http.Error(w, "Failed to fetch posts: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	data := struct {
-		Posts []*models.Post
-		Page  int
-	}{
-		Posts: posts,
-		Page:  page,
-	}
+	// Respond based on content type
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"posts": posts,
+			"page":  page,
+		})
+	} else {
+		data := struct {
+			Posts []*models.Post
+			Page  int
+		}{
+			Posts: posts,
+			Page:  page,
+		}
 
-	if err := pc.templates["index"].ExecuteTemplate(w, "layout", data); err != nil {
-		http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+		if err := pc.templates["index"].ExecuteTemplate(w, "layout", data); err != nil {
+			http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
@@ -101,16 +120,23 @@ func (pc *PostController) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := struct {
-		*models.Post
-		Comments []*models.Comment
-	}{
-		Post:     post,
-		Comments: post.Comments,
-	}
+	// Respond based on content type
+	contentType := r.Header.Get("Content-Type")
+	if contentType == "application/json" {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(post)
+	} else {
+		data := struct {
+			*models.Post
+			Comments []*models.Comment
+		}{
+			Post:     post,
+			Comments: post.Comments,
+		}
 
-	if err := pc.templates["show"].ExecuteTemplate(w, "layout", data); err != nil {
-		http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+		if err := pc.templates["show"].ExecuteTemplate(w, "layout", data); err != nil {
+			http.Error(w, "Template error: "+err.Error(), http.StatusInternalServerError)
+		}
 	}
 }
 
