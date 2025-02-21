@@ -8,31 +8,44 @@ import (
 	"strings"
 )
 
+var exit = os.Exit
+
 const cliVersion = "1.0.0"
 
+var RealMain = main
+var PrintHelp = printHelp
+var CliVersion = cliVersion
+
 func main() {
+	exitCode := run()
+	exit(exitCode)
+}
+
+func run() int {
 	if len(os.Args) < 2 {
-		printHelp()
-		os.Exit(1)
+		fmt.Println("Usage: cheeseburger <command>")
+		return 1
 	}
 
 	cmd := strings.ToLower(os.Args[1])
 	switch cmd {
 	case "help":
 		printHelp()
+		return 0
 	case "version":
 		fmt.Printf("cheeseburger version %s\n", cliVersion)
+		return 0
 	case "vanity":
 		// Remove the subcommand so flag parsing in vanity.RunVanity works correctly.
 		os.Args = append([]string{os.Args[0]}, os.Args[2:]...)
 		vanity.RunVanity()
+		return 0
 	case "serve":
 		if len(os.Args) < 3 {
 			fmt.Println("Error: static directory path required for serve command")
-			os.Exit(1)
+			return 1
 		}
 		staticDir := os.Args[2]
-		// Extract vanity name if provided
 		var vanityName string
 		for i := 3; i < len(os.Args); i++ {
 			if os.Args[i] == "--vanity-name" && i+1 < len(os.Args) {
@@ -41,13 +54,13 @@ func main() {
 			}
 		}
 		service.RunStaticTorServer(staticDir, vanityName)
+		return 0
 	case "mvc":
-		// Pass all args after "mvc" to the handler
-		service.HandleCommand(os.Args[2:])
+		return service.HandleCommand(os.Args[2:])
 	default:
 		fmt.Printf("Unknown command: %s\n\n", os.Args[1])
 		printHelp()
-		os.Exit(1)
+		return 1
 	}
 }
 

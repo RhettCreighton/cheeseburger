@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"cheeseburger/app/repositories/mock"
 	"cheeseburger/app/services"
 
+	badger "github.com/dgraph-io/badger/v4"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
@@ -42,6 +45,80 @@ func setupCommentRouter(controller *CommentController) *mux.Router {
 	return router
 }
 
+func TestNewCommentController(t *testing.T) {
+	// Create temporary view directories and files
+	tmpDir := t.TempDir()
+	viewsDir := filepath.Join(tmpDir, "app", "views")
+
+	dirs := []string{
+		filepath.Join(viewsDir, "comments"),
+		filepath.Join(viewsDir, "shared"),
+	}
+	for _, dir := range dirs {
+		err := os.MkdirAll(dir, 0755)
+		assert.NoError(t, err)
+	}
+
+	files := map[string]string{
+		filepath.Join(viewsDir, "layout.html"):             `{{define "layout"}}{{template "content" .}}{{end}}`,
+		filepath.Join(viewsDir, "comments", "new.html"):    `{{define "content"}}New{{end}}`,
+		filepath.Join(viewsDir, "comments", "list.html"):   `{{define "content"}}List{{end}}`,
+		filepath.Join(viewsDir, "shared", "comments.html"): `{{define "comments"}}Comments{{end}}`,
+	}
+	for path, content := range files {
+		err := os.WriteFile(path, []byte(content), 0644)
+		assert.NoError(t, err)
+	}
+
+	// Set working directory to temp dir for template loading
+	originalWd, err := os.Getwd()
+	assert.NoError(t, err)
+	err = os.Chdir(tmpDir)
+	assert.NoError(t, err)
+	defer os.Chdir(originalWd)
+
+	t.Run("NewCommentController", func(t *testing.T) {
+		controller := NewCommentController()
+		assert.NotNil(t, controller)
+		assert.NotNil(t, controller.templates)
+
+		// Verify all templates are loaded
+		expectedTemplates := []string{"new", "list"}
+		for _, name := range expectedTemplates {
+			assert.NotNil(t, controller.templates[name], "Template %s should be loaded", name)
+		}
+	})
+
+	t.Run("NewCommentControllerWithDB", func(t *testing.T) {
+		// Create a temporary DB
+		dbPath := filepath.Join(t.TempDir(), "test.db")
+		db, err := badger.Open(badger.DefaultOptions(dbPath))
+		assert.NoError(t, err)
+		defer db.Close()
+
+		controller := NewCommentControllerWithDB(db)
+		assert.NotNil(t, controller)
+		assert.NotNil(t, controller.templates)
+		assert.NotNil(t, controller.commentService)
+	})
+
+	t.Run("New action", func(t *testing.T) {
+		controller := NewCommentController()
+		req := httptest.NewRequest(http.MethodGet, "/posts/1/comments/new", nil)
+		req.Header.Set("Accept", "application/json")
+
+		// Add route parameters
+		router := mux.NewRouter()
+		router.HandleFunc("/posts/{postId:[0-9]+}/comments/new", controller.New)
+
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "New")
+	})
+}
+
 func TestCommentController(t *testing.T) {
 	controller, _, postService := setupTestCommentController(t)
 	router := setupCommentRouter(controller)
@@ -61,7 +138,7 @@ func TestCommentController(t *testing.T) {
 		}`
 
 		req := httptest.NewRequest(http.MethodPost, "/posts/"+strconv.Itoa(post.ID)+"/comments", strings.NewReader(payload))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -86,7 +163,7 @@ func TestCommentController(t *testing.T) {
 			}`
 
 			req := httptest.NewRequest(http.MethodPost, "/posts/"+strconv.Itoa(post.ID)+"/comments", strings.NewReader(payload))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json")
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
@@ -94,7 +171,7 @@ func TestCommentController(t *testing.T) {
 		}
 
 		req := httptest.NewRequest(http.MethodGet, "/posts/"+strconv.Itoa(post.ID)+"/comments", nil)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -118,7 +195,7 @@ func TestCommentController(t *testing.T) {
 		}`
 
 		req := httptest.NewRequest(http.MethodPut, "/comments/1", strings.NewReader(payload))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -143,7 +220,7 @@ func TestCommentController(t *testing.T) {
 
 		// Verify comment is deleted by checking the comments list
 		req = httptest.NewRequest(http.MethodGet, "/posts/"+strconv.Itoa(post.ID)+"/comments", nil)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 		w = httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -164,7 +241,7 @@ func TestCommentController(t *testing.T) {
 			}`
 
 			req := httptest.NewRequest(http.MethodPost, "/posts/"+strconv.Itoa(post.ID)+"/comments", strings.NewReader(payload))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json")
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
@@ -179,7 +256,7 @@ func TestCommentController(t *testing.T) {
 			}`
 
 			req := httptest.NewRequest(http.MethodPost, "/posts/"+strconv.Itoa(post.ID)+"/comments", strings.NewReader(payload))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json")
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
@@ -194,7 +271,7 @@ func TestCommentController(t *testing.T) {
 			}`
 
 			req := httptest.NewRequest(http.MethodPost, "/posts/999/comments", strings.NewReader(payload))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json")
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)

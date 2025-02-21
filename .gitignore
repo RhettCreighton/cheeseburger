@@ -1,2 +1,4 @@
 data/**/*
 cheeseburger
+coverage.out
+service/data/**/*

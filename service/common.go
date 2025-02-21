@@ -5,7 +5,8 @@ import (
 	"os"
 )
 
-const dbPath = "data/badger"
+// Database path - variable to allow testing with different paths
+var dbPath = "data/badger"
 
 func getCurrentDirectory() string {
 	dir, err := os.Getwd()

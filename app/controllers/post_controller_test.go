@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"cheeseburger/app/repositories/mock"
 	"cheeseburger/app/services"
 
+	"github.com/dgraph-io/badger/v4"
 	"github.com/gorilla/mux"
 	"github.com/stretchr/testify/assert"
 )
@@ -41,6 +44,76 @@ func setupRouter(controller *PostController) *mux.Router {
 	return router
 }
 
+func TestNewPostController(t *testing.T) {
+	// Create temporary view directories and files
+	tmpDir := t.TempDir()
+	viewsDir := filepath.Join(tmpDir, "app", "views")
+
+	dirs := []string{
+		filepath.Join(viewsDir, "posts"),
+		filepath.Join(viewsDir, "shared"),
+	}
+	for _, dir := range dirs {
+		err := os.MkdirAll(dir, 0755)
+		assert.NoError(t, err)
+	}
+
+	files := map[string]string{
+		filepath.Join(viewsDir, "layout.html"):             `{{define "layout"}}{{template "content" .}}{{end}}`,
+		filepath.Join(viewsDir, "posts", "index.html"):     `{{define "content"}}Index{{end}}`,
+		filepath.Join(viewsDir, "posts", "show.html"):      `{{define "content"}}Show{{end}}`,
+		filepath.Join(viewsDir, "posts", "new.html"):       `{{define "content"}}New{{end}}`,
+		filepath.Join(viewsDir, "shared", "comments.html"): `{{define "comments"}}Comments{{end}}`,
+	}
+	for path, content := range files {
+		err := os.WriteFile(path, []byte(content), 0644)
+		assert.NoError(t, err)
+	}
+
+	// Set working directory to temp dir for template loading
+	originalWd, err := os.Getwd()
+	assert.NoError(t, err)
+	err = os.Chdir(tmpDir)
+	assert.NoError(t, err)
+	defer os.Chdir(originalWd)
+
+	t.Run("NewPostController", func(t *testing.T) {
+		controller := NewPostController()
+		assert.NotNil(t, controller)
+		assert.NotNil(t, controller.templates)
+
+		// Verify all templates are loaded
+		expectedTemplates := []string{"index", "show", "new"}
+		for _, name := range expectedTemplates {
+			assert.NotNil(t, controller.templates[name], "Template %s should be loaded", name)
+		}
+	})
+
+	t.Run("NewPostControllerWithDB", func(t *testing.T) {
+		// Create a temporary DB
+		dbPath := filepath.Join(t.TempDir(), "test.db")
+		db, err := badger.Open(badger.DefaultOptions(dbPath))
+		assert.NoError(t, err)
+		defer db.Close()
+
+		controller := NewPostControllerWithDB(db)
+		assert.NotNil(t, controller)
+		assert.NotNil(t, controller.templates)
+		assert.NotNil(t, controller.postService)
+	})
+
+	t.Run("New action", func(t *testing.T) {
+		controller := NewPostController()
+		req := httptest.NewRequest(http.MethodGet, "/posts/new", nil)
+		w := httptest.NewRecorder()
+
+		controller.New(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Contains(t, w.Body.String(), "New")
+	})
+}
+
 func TestPostController(t *testing.T) {
 	controller, service, postRepo := setupTestPostController(t)
 	router := setupRouter(controller)
@@ -52,7 +125,8 @@ func TestPostController(t *testing.T) {
 		}`
 
 		req := httptest.NewRequest(http.MethodPost, "/posts", strings.NewReader(payload))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/json") // Still need Content-Type for POST/PUT requests
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -77,7 +151,7 @@ func TestPostController(t *testing.T) {
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/posts/"+strconv.Itoa(post.ID), nil)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -98,7 +172,8 @@ func TestPostController(t *testing.T) {
 		}`
 
 		req := httptest.NewRequest(http.MethodPut, "/posts/1", strings.NewReader(payload))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/json") // Still need Content-Type for PUT requests
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -144,7 +219,7 @@ func TestPostController(t *testing.T) {
 		}
 
 		req := httptest.NewRequest(http.MethodGet, "/posts?page=1&per_page=2", nil)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json")
 		w := httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -169,7 +244,8 @@ func TestPostController(t *testing.T) {
 			}`
 
 			req := httptest.NewRequest(http.MethodPost, "/posts", strings.NewReader(payload))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json")
+			req.Header.Set("Content-Type", "application/json") // Still need Content-Type for POST requests
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
@@ -184,7 +260,8 @@ func TestPostController(t *testing.T) {
 			}`
 
 			req := httptest.NewRequest(http.MethodPost, "/posts", strings.NewReader(payload))
-			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("Accept", "application/json")
+			req.Header.Set("Content-Type", "application/json") // Still need Content-Type for POST requests
 			w := httptest.NewRecorder()
 
 			router.ServeHTTP(w, req)
