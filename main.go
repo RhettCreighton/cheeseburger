@@ -1,6 +1,7 @@
 package main
 
 import (
+	"cheeseburger/coverage"
 	"cheeseburger/service"
 	"cheeseburger/vanity"
 	"fmt"
@@ -57,6 +58,9 @@ func run() int {
 		return 0
 	case "mvc":
 		return service.HandleCommand(os.Args[2:])
+	case "coverage":
+		coverage.RunCoverage(os.Args[2:])
+		return 0
 	default:
 		fmt.Printf("Unknown command: %s\n\n", os.Args[1])
 		printHelp()
@@ -70,15 +74,16 @@ func printHelp() {
 Commands:
   help                           Display this help message
   version                        Show version information
-  vanity [options]              Generate a vanity onion address (e.g., vanity --prefix test [--save])
-  serve <static_directory>      Run static file server with Tor hidden service
+  vanity [options]               Generate a vanity onion address (e.g., vanity --prefix test [--save])
+  serve <static_directory>       Run static file server with Tor hidden service
   mvc                           MVC blog commands:
-    serve [--vanity-name <name>]  Run the blog service (runs as Tor hidden service)
-    clean                         Clean the database
-    init                          Initialize database
-    backup                        Backup database
+    serve [--vanity-name <name>] Run the blog service (runs as Tor hidden service)
+    clean                        Clean the database
+    init                         Initialize database
+    backup                       Backup database
     restore [file]               Restore from backup
     help                         Show MVC help
+  coverage                     Automatically run tests to generate a temporary coverage report and display its summary.
 `
 	fmt.Println(helpText)
 }
