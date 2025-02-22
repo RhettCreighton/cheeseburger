@@ -104,11 +104,8 @@ func run() int {
 		}
 		return 0
 	case "autotest":
-		// Fully automate the process without extra arguments.
-		// Default: run coverage with JSON output, process one uncovered function,
-		// and write the generated test to a default directory ("autotest_output").
-		testOutputDir := "autotest_output"
-
+		// Fully automate test generation for one uncovered function.
+		// The generated test will be written to the appropriate _test.go file in the same directory as the source.
 		// Run our built-in coverage command with the "--json" flag.
 		cmdPath := os.Args[0]
 		coverageCmd := exec.Command(cmdPath, "coverage", "--json")
@@ -133,8 +130,9 @@ func run() int {
 		}
 		tmpFile.Close()
 
-		// Call our auto test generation routine.
-		if err := testgen.AutoGenerateTests(tmpFile.Name(), testOutputDir); err != nil {
+		// Pass an empty string as testOutputDir so that AutoGenerateTests writes
+		// the generated tests in the same directory as the target file.
+		if err := testgen.AutoGenerateTests(tmpFile.Name(), ""); err != nil {
 			fmt.Printf("Error during automatic test generation: %v\n", err)
 			return 1
 		}
@@ -163,9 +161,9 @@ Commands:
     help                         Show MVC help
   coverage [--json]              Automatically run tests to generate a temporary coverage report and display its summary.
   testgen <function_source_file> <test_file_path>
-                               Generate test cases for a function and append them to the specified test file.
+                               Generate test cases for a function and write them to the specified test file.
   autotest                       Fully automate test generation for one uncovered function,
-                               writing the test to the default output directory ("autotest_output").
+                               writing the test to the appropriate _test.go file.
 `
 	fmt.Println(helpText)
 }

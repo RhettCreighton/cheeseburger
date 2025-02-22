@@ -1,4 +1,3 @@
-// File: cheeseburger/testgen/auto_testgen.go
 package testgen
 
 import (
@@ -24,17 +23,8 @@ type CoverageTarget struct {
 
 // AutoGenerateTests reads the coverage JSON file, extracts functions with low coverage,
 // and for each function, extracts its source code and passes it to GenerateTests.
-// In this limited prototype, only the first uncovered target is processed.
+// In this prototype, only the first uncovered target is processed.
 func AutoGenerateTests(coverageJSONPath, testOutputDir string) error {
-	// Remove any existing output directory.
-	if err := os.RemoveAll(testOutputDir); err != nil {
-		return fmt.Errorf("failed to remove existing output directory %s: %v", testOutputDir, err)
-	}
-	// Create a fresh output directory.
-	if err := os.MkdirAll(testOutputDir, 0755); err != nil {
-		return fmt.Errorf("failed to create output directory %s: %v", testOutputDir, err)
-	}
-
 	// Read the coverage JSON file.
 	rawData, err := ioutil.ReadFile(coverageJSONPath)
 	if err != nil {
@@ -59,9 +49,18 @@ func AutoGenerateTests(coverageJSONPath, testOutputDir string) error {
 		return fmt.Errorf("no coverage targets found")
 	}
 
-	// Process only the first uncovered target for a controlled test.
+	// Process only the first uncovered target.
 	target := targets[0]
 	fmt.Printf("Processing %s:%s (lines %d-%d)\n", target.File, target.Function, target.FuncStart, target.FuncEnd)
+
+	// Adjust the file path if the first component is not a directory.
+	parts := strings.Split(target.File, string(filepath.Separator))
+	if len(parts) > 0 {
+		if info, err := os.Stat(parts[0]); err == nil && !info.IsDir() {
+			// Remove the first component.
+			target.File = strings.Join(parts[1:], string(filepath.Separator))
+		}
+	}
 
 	functionCode, err := extractFunctionCode(target.File, target.Function, target.FuncStart, target.FuncEnd)
 	if err != nil {
@@ -76,9 +75,13 @@ func AutoGenerateTests(coverageJSONPath, testOutputDir string) error {
 	context := fmt.Sprintf("Uncovered regions: %s", strings.Join(regions, ", "))
 
 	// Determine the test file path.
-	// We create a default file name in the output directory based on the base file name.
-	testFilePath := filepath.Join(testOutputDir, filepath.Base(target.File))
-	// Optionally, you could append "_test.go" if desired.
+	// If testOutputDir is provided, use it; otherwise, write the test file in the same directory as the source file.
+	var testFilePath string
+	if testOutputDir != "" {
+		testFilePath = filepath.Join(testOutputDir, strings.TrimSuffix(filepath.Base(target.File), ".go")+"_autotest_test.go")
+	} else {
+		testFilePath = filepath.Join(filepath.Dir(target.File), strings.TrimSuffix(filepath.Base(target.File), ".go")+"_autotest_test.go")
+	}
 
 	// Generate tests for the function.
 	if err := GenerateTests(functionCode, context, testFilePath); err != nil {
@@ -91,8 +94,6 @@ func AutoGenerateTests(coverageJSONPath, testOutputDir string) error {
 
 // extractFunctionCode uses a simple line-based extraction to return the source code
 // of the function from filePath between funcStart and funcEnd.
-// If reading the file fails with a "not a directory" error (or file not found),
-// it will try stripping a "cheeseburger/" prefix.
 func extractFunctionCode(filePath, funcName string, funcStart, funcEnd int) (string, error) {
 	// Resolve to an absolute path.
 	absPath, err := filepath.Abs(filePath)

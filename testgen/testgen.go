@@ -1,9 +1,8 @@
-// File: cheeseburger/testgen/testgen.go
 package testgen
 
 import (
-	"bufio"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -12,7 +11,7 @@ import (
 
 // GenerateTests accepts the source code of a function along with optional context,
 // calls the LLM to generate test code, cleans up the output, replaces placeholder module names,
-// and then appends it to the specified test file.
+// and then writes it to the specified test file, overwriting any existing content.
 func GenerateTests(functionCode, context, testFilePath string) error {
 	// Build the prompt.
 	prompt := BuildPrompt(functionCode, context)
@@ -25,7 +24,7 @@ func GenerateTests(functionCode, context, testFilePath string) error {
 	}
 
 	// Clean up the generated test code:
-	// Use a regular expression to locate the first occurrence of a line starting with "package".
+	// Locate the first occurrence of a line starting with "package".
 	re := regexp.MustCompile(`(?m)^package\s`)
 	loc := re.FindStringIndex(generatedTest)
 	cleanedTest := generatedTest
@@ -42,14 +41,13 @@ func GenerateTests(functionCode, context, testFilePath string) error {
 	if err == nil && moduleName != "" {
 		cleanedTest = strings.ReplaceAll(cleanedTest, "your_project", moduleName)
 	} else {
-		// If unable to determine, log a warning.
 		fmt.Println("Warning: could not determine module name from go.mod; leaving placeholders unchanged")
 	}
 
 	fmt.Println("Generated test code (cleaned):\n", cleanedTest)
 
-	// Write or append the cleaned test code to the test file.
-	if err := appendToFile(testFilePath, cleanedTest); err != nil {
+	// Write the cleaned test code to the test file, overwriting any existing content.
+	if err := writeToFile(testFilePath, cleanedTest); err != nil {
 		return fmt.Errorf("error writing test code: %v", err)
 	}
 
@@ -57,48 +55,12 @@ func GenerateTests(functionCode, context, testFilePath string) error {
 	return nil
 }
 
-// appendToFile appends content to the file at filePath. It creates the file if it does not exist.
-func appendToFile(filePath, content string) error {
+// writeToFile writes content to the file at filePath, ensuring the directory exists.
+func writeToFile(filePath, content string) error {
 	// Ensure the directory exists.
 	dir := filepath.Dir(filePath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return err
 	}
-
-	// Append to the file (or create it if not exists).
-	f, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	if _, err := f.WriteString("\n\n" + content); err != nil {
-		return err
-	}
-	return nil
-}
-
-// getModuleName reads the go.mod file from the project root and returns the module name.
-func getModuleName() (string, error) {
-	file, err := os.Open("go.mod")
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-		if strings.HasPrefix(line, "module ") {
-			// The line should be like: "module github.com/yourusername/cheeseburger"
-			parts := strings.Fields(line)
-			if len(parts) >= 2 {
-				return parts[1], nil
-			}
-		}
-	}
-	if err := scanner.Err(); err != nil {
-		return "", err
-	}
-	return "", fmt.Errorf("module name not found in go.mod")
+	return ioutil.WriteFile(filePath, []byte(content), 0644)
 }
