@@ -1,16 +1,12 @@
 package main
 
 import (
-	"bytes"
 	"cheeseburger/coverage"
 	"cheeseburger/service"
-	"cheeseburger/testgen"
 	"cheeseburger/vanity"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -80,63 +76,6 @@ func run() int {
 		}
 		coverage.RunCoverage(remainingArgs)
 		return 0
-	case "testgen":
-		// Usage: cheeseburger testgen <function_source_file> <test_file_path>
-		if len(os.Args) < 4 {
-			fmt.Println("Usage: cheeseburger testgen <function_source_file> <test_file_path>")
-			return 1
-		}
-		functionSourceFile := os.Args[2]
-		testFilePath := os.Args[3]
-		// Read the function code from the provided file.
-		codeBytes, err := ioutil.ReadFile(functionSourceFile)
-		if err != nil {
-			fmt.Printf("Error reading function source: %v\n", err)
-			return 1
-		}
-		functionCode := string(codeBytes)
-		// Optionally, you can add more context for test generation.
-		context := ""
-		err = testgen.GenerateTests(functionCode, context, testFilePath)
-		if err != nil {
-			fmt.Printf("Error generating tests: %v\n", err)
-			return 1
-		}
-		return 0
-	case "autotest":
-		// Fully automate test generation for one uncovered function.
-		// The generated test will be written to the appropriate _test.go file in the same directory as the source.
-		// Run our built-in coverage command with the "--json" flag.
-		cmdPath := os.Args[0]
-		coverageCmd := exec.Command(cmdPath, "coverage", "--json")
-		var outBuf, errBuf bytes.Buffer
-		coverageCmd.Stdout = &outBuf
-		coverageCmd.Stderr = &errBuf
-		if err := coverageCmd.Run(); err != nil {
-			fmt.Printf("Error running coverage command: %v\n%s\n", err, errBuf.String())
-			return 1
-		}
-
-		// Write the JSON output to a temporary file.
-		tmpFile, err := ioutil.TempFile("", "coverage-*.json")
-		if err != nil {
-			fmt.Printf("Error creating temporary file: %v\n", err)
-			return 1
-		}
-		defer os.Remove(tmpFile.Name())
-		if _, err := tmpFile.Write(outBuf.Bytes()); err != nil {
-			fmt.Printf("Error writing coverage output to temp file: %v\n", err)
-			return 1
-		}
-		tmpFile.Close()
-
-		// Pass an empty string as testOutputDir so that AutoGenerateTests writes
-		// the generated tests in the same directory as the target file.
-		if err := testgen.AutoGenerateTests(tmpFile.Name(), ""); err != nil {
-			fmt.Printf("Error during automatic test generation: %v\n", err)
-			return 1
-		}
-		return 0
 	default:
 		fmt.Printf("Unknown command: %s\n\n", os.Args[1])
 		printHelp()
@@ -160,10 +99,6 @@ Commands:
     restore [file]               Restore from backup
     help                         Show MVC help
   coverage [--json]              Automatically run tests to generate a temporary coverage report and display its summary.
-  testgen <function_source_file> <test_file_path>
-                               Generate test cases for a function and write them to the specified test file.
-  autotest                       Fully automate test generation for one uncovered function,
-                               writing the test to the appropriate _test.go file.
 `
 	fmt.Println(helpText)
 }

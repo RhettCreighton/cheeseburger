@@ -127,7 +127,7 @@ func setupTestRouter(t *testing.T, db *badger.DB) (*mux.Router, *controllers.Pos
 }
 
 func TestSetupRoutes(t *testing.T) {
-	// Use helper functions from test_helpers.go.
+	// We'll keep using our test helper for this test
 	setupTestTemplates(t)
 	db := setupTestDB(t)
 	router, _, _ := setupTestRouter(t, db)
@@ -186,6 +186,7 @@ func TestSetupRoutes(t *testing.T) {
 }
 
 func TestSetupMVCRoutes(t *testing.T) {
+	// We'll keep using our test helper for this test
 	setupTestTemplates(t)
 	db := setupTestDB(t)
 	router, _, _ := setupTestRouter(t, db)
@@ -252,7 +253,68 @@ func TestSetupMVCRoutes(t *testing.T) {
 	}
 }
 
+func TestHelpers(t *testing.T) {
+	// Test the setupTestData function
+	db := setupTestDB(t)
+	setupTestData(t, db)
+	
+	// Verify the data was properly created
+	err := db.View(func(txn *badger.Txn) error {
+		item, err := txn.Get([]byte(PostKeyPrefix + "1"))
+		if err != nil {
+			return err
+		}
+		
+		var post models.Post
+		err = item.Value(func(val []byte) error {
+			return json.Unmarshal(val, &post)
+		})
+		if err != nil {
+			return err
+		}
+		
+		assert.Equal(t, 1, post.ID)
+		assert.Equal(t, "Test Post", post.Title)
+		assert.Contains(t, post.Content, "test post")
+		
+		return nil
+	})
+	assert.NoError(t, err)
+	
+	// Test marshalEntity function
+	post := &models.Post{
+		ID:      42,
+		Title:   "Marshal Test",
+		Content: "Testing marshal function",
+	}
+	
+	data, err := marshalEntity(post)
+	assert.NoError(t, err)
+	
+	var unmarshalled models.Post
+	err = json.Unmarshal(data, &unmarshalled)
+	assert.NoError(t, err)
+	assert.Equal(t, post.ID, unmarshalled.ID)
+	assert.Equal(t, post.Title, unmarshalled.Title)
+	assert.Equal(t, post.Content, unmarshalled.Content)
+	
+	// Test getNextID function - first with non-existing key
+	db.Update(func(txn *badger.Txn) error {
+		id, err := getNextID(txn, "test:id:non-existent")
+		assert.NoError(t, err)
+		assert.Equal(t, 1, id)
+		
+		// Now test with existing key
+		id, err = getNextID(txn, "test:id:non-existent")
+		assert.NoError(t, err)
+		assert.Equal(t, 2, id)
+		
+		return nil
+	})
+}
+
 func TestStartServer(t *testing.T) {
+	// Create a test router
 	router := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
