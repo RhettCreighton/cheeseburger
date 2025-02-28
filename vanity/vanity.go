@@ -18,6 +18,15 @@ import (
 	"golang.org/x/crypto/sha3"
 )
 
+// getDataDir returns the path to store vanity key data
+// Can be overridden with VANITY_DATA_DIR environment variable for testing
+func getDataDir() string {
+	if dir := os.Getenv("VANITY_DATA_DIR"); dir != "" {
+		return dir
+	}
+	return filepath.Join("data", "vanity", "default")
+}
+
 func RunVanity() {
 	prefix := flag.String("prefix", "", "vanity prefix for onion address (in lowercase)")
 	saveMode := flag.Bool("save", false, "save the generated key information to a file")
@@ -89,7 +98,7 @@ func RunVanity() {
 	cancel()
 
 	if *saveMode {
-		saveDir := filepath.Join("data", "vanity", "default")
+		saveDir := getDataDir()
 		if err := os.MkdirAll(saveDir, 0700); err != nil {
 			log.Fatalf("Failed to create directory: %v", err)
 		}
